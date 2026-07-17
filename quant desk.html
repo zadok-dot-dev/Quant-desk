@@ -112,6 +112,17 @@
   <!-- CALCULATOR -->
   <div id="calc-view">
     <div class="panel">
+      <h2>Paste from Gemini <span style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0;">(optional — fills the form below, doesn't add anything until you check it)</span></h2>
+      <textarea id="paste-block" rows="4" placeholder="Paste Gemini's output here, e.g. &quot;Contract: Under 2.5 FRA-ESP. Market price 51%. True P: 55%.&quot;"
+        style="width:100%;background:var(--bg);border:1px solid var(--line);border-radius:3px;color:var(--ink);padding:10px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;outline:none;resize:vertical;margin-bottom:10px;"></textarea>
+      <div class="btnrow">
+        <button onclick="parsePaste()">Parse into form</button>
+        <button class="ghost" onclick="document.getElementById('paste-block').value=''">Clear</button>
+      </div>
+      <div id="parse-status" class="note"></div>
+    </div>
+
+    <div class="panel">
       <h2>Add contract</h2>
       <div class="grid-form">
         <div class="field"><label>Contract label</label><input id="in-label" placeholder="Under 2.5 FRA-ESP"></div>
@@ -208,6 +219,48 @@ function showToast(msg){
 
 function fmtPct(x){ return (x*100).toFixed(1)+'%'; }
 function fmtUsd(x){ return '$'+x.toFixed(2); }
+
+// ---- paste parser ----
+function parsePaste(){
+  const raw = document.getElementById('paste-block').value;
+  const status = document.getElementById('parse-status');
+  if(!raw.trim()){ status.textContent = 'Paste something first.'; return; }
+
+  const found = { label:null, price:null, trueP:null };
+
+  // Label: look for "Contract:" / "Market:" style line, else first non-empty line
+  let m = raw.match(/(?:contract|market|matchup|target)[:\s]+([^\n.]{3,60})/i);
+  if(m) found.label = m[1].trim();
+  else {
+    const firstLine = raw.split('\n').map(l=>l.trim()).find(l=>l.length>2);
+    if(firstLine) found.label = firstLine.slice(0,60);
+  }
+
+  // True P: look near the words "true p", "true probability", "baseline", "our model"
+  m = raw.match(/(?:true\s*p(?:robability)?|baseline|bottom[- ]up|our model)[^\d%]{0,25}(\d{1,3}(?:\.\d+)?)\s*%/i);
+  if(m) found.trueP = parseFloat(m[1]);
+
+  // Price: look near "market price", "current price", "polymarket", "kalshi"
+  m = raw.match(/(?:market price|current price|polymarket|kalshi)[^\d%¢]{0,25}(\d{1,3}(?:\.\d+)?)\s*[%¢]/i);
+  if(m) found.price = parseFloat(m[1]);
+
+  // Fallback: if we still don't have both, grab the first two percentage-like numbers in the whole text
+  if(found.trueP===null || found.price===null){
+    const allPct = [...raw.matchAll(/(\d{1,3}(?:\.\d+)?)\s*[%¢]/g)].map(x=>parseFloat(x[1]));
+    if(found.price===null && allPct.length>0) found.price = allPct[0];
+    if(found.trueP===null && allPct.length>1) found.trueP = allPct[1];
+  }
+
+  if(found.label) document.getElementById('in-label').value = found.label;
+  if(found.price!==null) document.getElementById('in-price').value = found.price;
+  if(found.trueP!==null) document.getElementById('in-truep').value = found.trueP;
+
+  if(found.price!==null && found.trueP!==null){
+    status.innerHTML = `<span class="pos">Filled in below — double-check before adding.</span> Guessed price ${found.price}%, true P ${found.trueP}%. If either looks wrong, edit the fields directly.`;
+  } else {
+    status.innerHTML = `<span class="warn">Could only find some of it</span> — fill in whatever's missing by hand below.`;
+  }
+}
 
 // ---- calculator ----
 function addRow(){
