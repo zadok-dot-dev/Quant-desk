@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edge Desk</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg:#12151a;
+    --panel:#171b22;
+    --line:#262c36;
+    --ink:#e7ebf0;
+    --dim:#7c8797;
+    --teal:#3fd8bf;
+    --amber:#e8a33d;
+    --red:#e8615f;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Inter',sans-serif;font-size:14px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .wrap{max-width:980px;margin:0 auto;padding:22px 20px 70px;}
+
+  header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap;gap:14px;}
+  .brand{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:17px;letter-spacing:-0.01em;}
+  .brand span{color:var(--teal);}
+  .bankroll-box{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);padding:8px 12px;border-radius:3px;}
+  .bankroll-box label{color:var(--dim);font-size:12px;}
+  .bankroll-box input{
+    background:transparent;border:none;color:var(--ink);font-family:'IBM Plex Mono',monospace;
+    font-size:14px;width:90px;outline:none;
+  }
+
+  .tabs{display:flex;gap:2px;margin-bottom:18px;border-bottom:1px solid var(--line);}
+  .tab{padding:10px 16px;color:var(--dim);cursor:pointer;font-size:13px;font-weight:500;border-bottom:2px solid transparent;}
+  .tab.active{color:var(--ink);border-bottom-color:var(--teal);}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:20px;margin-bottom:18px;}
+  .panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:0 0 16px;font-weight:600;}
+
+  .grid-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:14px;}
+  .field label{display:block;font-size:11px;color:var(--dim);margin-bottom:5px;}
+  .field input{
+    width:100%;background:var(--bg);border:1px solid var(--line);border-radius:3px;
+    color:var(--ink);padding:8px 9px;font-family:'IBM Plex Mono',monospace;font-size:13px;outline:none;
+  }
+  .field input:focus{border-color:var(--teal);}
+
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;}
+  button{
+    font-family:'Inter',sans-serif;font-size:13px;font-weight:600;
+    padding:9px 16px;border-radius:3px;border:1px solid var(--line);
+    background:var(--bg);color:var(--ink);cursor:pointer;
+  }
+  button.primary{background:var(--teal);color:#0a1210;border-color:var(--teal);}
+  button.ghost{color:var(--dim);}
+  button:hover{opacity:.85;}
+
+  table{width:100%;border-collapse:collapse;margin-top:4px;}
+  th{
+    text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--dim);padding:9px 10px;border-bottom:1px solid var(--line);font-weight:600;
+  }
+  td{padding:10px 10px;border-bottom:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:13px;}
+  tr:last-child td{border-bottom:none;}
+  .pos{color:var(--teal);}
+  .neg{color:var(--dim);}
+  .warn{color:var(--amber);}
+  .rm{cursor:pointer;color:var(--dim);font-family:'Inter',sans-serif;font-size:16px;line-height:1;}
+  .rm:hover{color:var(--red);}
+
+  .empty{color:var(--dim);font-size:13px;padding:20px 0;text-align:center;}
+  .note{font-size:12px;color:var(--dim);margin-top:12px;line-height:1.6;}
+  .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:18px;}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:14px 16px;}
+  .stat .val{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;}
+  .stat .lbl{font-size:11px;color:var(--dim);margin-top:4px;text-transform:uppercase;letter-spacing:.05em;}
+  select{
+    width:100%;background:var(--bg);border:1px solid var(--line);border-radius:3px;
+    color:var(--ink);padding:8px 9px;font-family:'IBM Plex Mono',monospace;font-size:13px;outline:none;
+  }
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--panel);border:1px solid var(--teal);color:var(--ink);
+    padding:10px 18px;border-radius:4px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">edge<span>.</span>desk</div>
+    <div class="bankroll-box">
+      <label>Bankroll $</label>
+      <input type="number" id="bankroll" value="50" min="0" step="1">
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="calc">Calculator</div>
+    <div class="tab" data-tab="log">Trade Log</div>
+    <div class="tab" data-tab="guide">Guide</div>
+  </div>
+
+  <!-- CALCULATOR -->
+  <div id="calc-view">
+    <div class="panel">
+      <h2>Add contract</h2>
+      <div class="grid-form">
+        <div class="field"><label>Contract label</label><input id="in-label" placeholder="Under 2.5 FRA-ESP"></div>
+        <div class="field"><label>Market price (¢, 0–100)</label><input id="in-price" type="number" placeholder="51" step="0.1"></div>
+        <div class="field"><label>Your true P (%, 0–100)</label><input id="in-truep" type="number" placeholder="55" step="0.1"></div>
+        <div class="field"><label>Correlation group</label><input id="in-group" placeholder="optional, e.g. FRA-ESP"></div>
+        <div class="field"><label>Kelly fraction</label><input id="in-kelly" type="number" value="0.25" step="0.05"></div>
+        <div class="field"><label>Price buffer (¢)</label><input id="in-buffer" type="number" value="2" step="0.5"></div>
+      </div>
+      <div class="btnrow">
+        <button class="primary" onclick="addRow()">Add to table</button>
+        <button class="ghost" onclick="clearRows()">Clear table</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Position sizing</h2>
+      <div id="calc-table"></div>
+      <div class="note">
+        Edge = True P − Market Price. Kelly stake uses f* = (P − price) / (1 − price), scaled by your Kelly fraction.
+        Contracts sharing a correlation group get their stake divided by the number of contracts in that group (Phase 3 haircut) —
+        a conservative approximation, not a full covariance model. Max buy price = True P minus your buffer: the price above which
+        the edge you priced in no longer exists.
+      </div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div id="log-view" style="display:none;">
+    <div class="stat-row" id="stat-row"></div>
+    <div class="panel">
+      <h2>Saved trades</h2>
+      <div id="log-table"></div>
+    </div>
+  </div>
+
+  <!-- GUIDE -->
+  <div id="guide-view" style="display:none;">
+    <div class="panel">
+      <h2>What this is</h2>
+      <p style="line-height:1.7;color:var(--dim);">
+        A sizing and record-keeping tool for the workflow you described. It does the math (Phases 3–4: correlation haircut,
+        Quarter-Kelly stake, max buy price) and keeps a persistent log of what you actually bet and how it turned out.
+        It does not pull live stats or live market prices — see the full doc for exactly what's covered and what isn't.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let rows = [];
+let trades = [];
+
+// ---- storage ----
+async function loadState(){
+  try{
+    const b = await window.storage.get('bankroll', false);
+    if(b) document.getElementById('bankroll').value = JSON.parse(b.value);
+  }catch(e){}
+  try{
+    const t = await window.storage.get('trades', false);
+    if(t) trades = JSON.parse(t.value);
+  }catch(e){ trades = []; }
+  renderLog();
+}
+async function saveBankroll(){
+  try{ await window.storage.set('bankroll', JSON.stringify(document.getElementById('bankroll').value), false); }catch(e){}
+}
+async function saveTrades(){
+  try{ await window.storage.set('trades', JSON.stringify(trades), false); }catch(e){ showToast('Save failed — try again'); }
+}
+document.getElementById('bankroll').addEventListener('change', saveBankroll);
+
+// ---- tabs ----
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('calc-view').style.display = t.dataset.tab==='calc' ? '' : 'none';
+    document.getElementById('log-view').style.display = t.dataset.tab==='log' ? '' : 'none';
+    document.getElementById('guide-view').style.display = t.dataset.tab==='guide' ? '' : 'none';
+    if(t.dataset.tab==='log') renderLog();
+  });
+});
+
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 1800);
+}
+
+function fmtPct(x){ return (x*100).toFixed(1)+'%'; }
+function fmtUsd(x){ return '$'+x.toFixed(2); }
+
+// ---- calculator ----
+function addRow(){
+  const label = document.getElementById('in-label').value.trim() || 'Untitled';
+  const price = parseFloat(document.getElementById('in-price').value)/100;
+  const trueP = parseFloat(document.getElementById('in-truep').value)/100;
+  const group = document.getElementById('in-group').value.trim();
+  const kf = parseFloat(document.getElementById('in-kelly').value) || 0.25;
+  const buffer = (parseFloat(document.getElementById('in-buffer').value)||0)/100;
+
+  if(isNaN(price) || isNaN(trueP) || price<=0 || price>=1){
+    showToast('Enter a valid price and true P (both between 0–100)');
+    return;
+  }
+  rows.push({id:Date.now(), label, price, trueP, group, kf, buffer});
+  document.getElementById('in-label').value='';
+  document.getElementById('in-price').value='';
+  document.getElementById('in-truep').value='';
+  document.getElementById('in-group').value='';
+  renderCalc();
+}
+
+function clearRows(){ rows=[]; renderCalc(); }
+
+function removeRow(id){ rows = rows.filter(r=>r.id!==id); renderCalc(); }
+
+function computeRow(r){
+  const edge = r.trueP - r.price;
+  const decimalOdds = (1-r.price)/r.price;
+  const fullKelly = edge>0 ? edge/(1-r.price) : 0;
+  const groupSize = r.group ? rows.filter(x=>x.group && x.group.toLowerCase()===r.group.toLowerCase()).length : 1;
+  const haircut = groupSize>0 ? 1/groupSize : 1;
+  const scaledKelly = fullKelly * r.kf * haircut;
+  const bankroll = parseFloat(document.getElementById('bankroll').value) || 0;
+  const stake = Math.max(0, scaledKelly) * bankroll;
+  const maxBuy = Math.max(0, r.trueP - r.buffer);
+  return {edge, decimalOdds, scaledKelly, stake, maxBuy, groupSize};
+}
+
+async function saveRowToLog(r, c){
+  trades.push({
+    id: Date.now(), date: new Date().toISOString().slice(0,10),
+    label: r.label, price: r.price, trueP: r.trueP, edge: c.edge,
+    stake: c.stake, maxBuy: c.maxBuy, outcome: 'pending', pnl: 0
+  });
+  await saveTrades();
+  showToast('Saved to trade log');
+}
+
+function renderCalc(){
+  const el = document.getElementById('calc-table');
+  if(rows.length===0){ el.innerHTML = '<div class="empty">No contracts yet — add one above.</div>'; return; }
+  let html = '<table><thead><tr><th>Contract</th><th>Price</th><th>True P</th><th>Edge</th><th>Dec. odds</th><th>Stake</th><th>Max buy</th><th></th><th></th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    const c = computeRow(r);
+    const edgeClass = c.edge>0 ? 'pos' : 'neg';
+    html += `<tr>
+      <td>${r.label}${r.group?`<div style="color:var(--dim);font-size:10.5px;">${r.group} · ${c.groupSize} in group</div>`:''}</td>
+      <td>${(r.price*100).toFixed(1)}¢</td>
+      <td>${(r.trueP*100).toFixed(1)}%</td>
+      <td class="${edgeClass}">${c.edge>0?'+':''}${(c.edge*100).toFixed(1)}pp</td>
+      <td>${c.decimalOdds.toFixed(2)}</td>
+      <td class="${c.stake>0?'pos':'neg'}">${c.edge>0?fmtUsd(c.stake):'NO EDGE'}</td>
+      <td class="warn">${(c.maxBuy*100).toFixed(1)}¢</td>
+      <td><button class="ghost" style="padding:5px 10px;font-size:11px;" onclick='saveRowToLog(${JSON.stringify(r)}, ${JSON.stringify(c)})'>Log</button></td>
+      <td class="rm" onclick="removeRow(${r.id})">×</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+// ---- log ----
+function renderStats(){
+  const resolved = trades.filter(t=>t.outcome!=='pending');
+  const wins = resolved.filter(t=>t.outcome==='win').length;
+  const winRate = resolved.length ? (wins/resolved.length*100).toFixed(1)+'%' : '—';
+  const netPnl = trades.reduce((s,t)=>s+(t.pnl||0),0);
+  const avgEdge = trades.length ? (trades.reduce((s,t)=>s+t.edge,0)/trades.length*100).toFixed(1)+'pp' : '—';
+  document.getElementById('stat-row').innerHTML = `
+    <div class="stat"><div class="val">${trades.length}</div><div class="lbl">Logged trades</div></div>
+    <div class="stat"><div class="val">${winRate}</div><div class="lbl">Win rate (resolved)</div></div>
+    <div class="stat"><div class="val" style="color:${netPnl>=0?'var(--teal)':'var(--red)'}">${fmtUsd(netPnl)}</div><div class="lbl">Net P&L</div></div>
+    <div class="stat"><div class="val">${avgEdge}</div><div class="lbl">Avg. priced edge</div></div>
+  `;
+}
+
+function renderLog(){
+  renderStats();
+  const el = document.getElementById('log-table');
+  if(trades.length===0){ el.innerHTML = '<div class="empty">No saved trades yet — log one from the Calculator tab.</div>'; return; }
+  let html = '<table><thead><tr><th>Date</th><th>Contract</th><th>Price</th><th>True P</th><th>Stake</th><th>Outcome</th><th>P&L</th><th></th></tr></thead><tbody>';
+  [...trades].reverse().forEach(t=>{
+    html += `<tr>
+      <td>${t.date}</td>
+      <td>${t.label}</td>
+      <td>${(t.price*100).toFixed(1)}¢</td>
+      <td>${(t.trueP*100).toFixed(1)}%</td>
+      <td>${fmtUsd(t.stake)}</td>
+      <td>
+        <select onchange="updateOutcome(${t.id}, this.value)">
+          <option value="pending" ${t.outcome==='pending'?'selected':''}>Pending</option>
+          <option value="win" ${t.outcome==='win'?'selected':''}>Win</option>
+          <option value="loss" ${t.outcome==='loss'?'selected':''}>Loss</option>
+        </select>
+      </td>
+      <td>
+        <input type="number" step="0.01" value="${t.pnl}" style="width:70px;background:var(--bg);border:1px solid var(--line);color:var(--ink);font-family:'IBM Plex Mono',monospace;padding:5px;border-radius:3px;"
+          onchange="updatePnl(${t.id}, this.value)">
+      </td>
+      <td class="rm" onclick="removeTrade(${t.id})">×</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+async function updateOutcome(id, val){
+  const t = trades.find(x=>x.id===id); if(t){ t.outcome = val; await saveTrades(); renderLog(); }
+}
+async function updatePnl(id, val){
+  const t = trades.find(x=>x.id===id); if(t){ t.pnl = parseFloat(val)||0; await saveTrades(); renderLog(); }
+}
+async function removeTrade(id){
+  trades = trades.filter(x=>x.id!==id); await saveTrades(); renderLog();
+}
+
+renderCalc();
+loadState();
+</script>
+</body>
+</html>
