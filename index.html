@@ -357,9 +357,18 @@ function renderLog(){
     html += `<tr>
       <td>${t.date}</td>
       <td>${t.label}</td>
-      <td>${(t.price*100).toFixed(1)}¢</td>
-      <td>${(t.trueP*100).toFixed(1)}%</td>
-      <td>${fmtUsd(t.stake)}</td>
+      <td>
+        <input type="number" step="0.1" value="${(t.price*100).toFixed(1)}" style="width:60px;background:var(--bg);border:1px solid var(--line);color:var(--ink);font-family:'IBM Plex Mono',monospace;padding:5px;border-radius:3px;"
+          onchange="updateField(${t.id}, 'price', this.value/100)">¢
+      </td>
+      <td>
+        <input type="number" step="0.1" value="${(t.trueP*100).toFixed(1)}" style="width:60px;background:var(--bg);border:1px solid var(--line);color:var(--ink);font-family:'IBM Plex Mono',monospace;padding:5px;border-radius:3px;"
+          onchange="updateField(${t.id}, 'trueP', this.value/100)">%
+      </td>
+      <td>
+        $<input type="number" step="0.01" value="${t.stake.toFixed(2)}" style="width:70px;background:var(--bg);border:1px solid var(--line);color:var(--ink);font-family:'IBM Plex Mono',monospace;padding:5px;border-radius:3px;"
+          onchange="updateField(${t.id}, 'stake', this.value)">
+      </td>
       <td>
         <select onchange="updateOutcome(${t.id}, this.value)">
           <option value="pending" ${t.outcome==='pending'?'selected':''}>Pending</option>
@@ -376,6 +385,17 @@ function renderLog(){
   });
   html += '</tbody></table>';
   el.innerHTML = html;
+}
+
+async function updateField(id, field, val){
+  const t = trades.find(x=>x.id===id); if(!t) return;
+  const num = parseFloat(val);
+  if(isNaN(num)){ showToast('Enter a valid number'); renderLog(); return; }
+  t[field] = num;
+  if(field==='price' || field==='trueP') t.edge = t.trueP - t.price; // keep edge in sync
+  await saveTrades();
+  renderLog();
+  showToast('Updated');
 }
 
 async function updateOutcome(id, val){
